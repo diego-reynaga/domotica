@@ -3,23 +3,229 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Control LED Arduino</title>
+    <title>Control Domótico - Arduino</title>
     <style>
-      body{font-family:Arial,Helvetica,sans-serif;display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px}
-      .radio{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:16px;cursor:pointer}
-      .radio input{transform:scale(1.1)}
-      .on{background:#2ecc71;color:#fff}
-      .off{background:#e74c3c;color:#fff}
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        color: #333;
+      }
+      
+      .container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 2rem;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+      }
+      
+      h1 {
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+        color: #2c3e50;
+        font-weight: 600;
+      }
+      
+      .status-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-left: 4px solid #3498db;
+      }
+      
+      #status {
+        font-weight: 500;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+      }
+      
+      #message {
+        font-size: 0.9rem;
+        color: #7f8c8d;
+        min-height: 1.2em;
+      }
+      
+      .pir-status {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 1rem 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+      
+      .pir-status.active {
+        display: flex;
+        animation: pulse 2s infinite;
+      }
+      
+      .pir-icon {
+        width: 20px;
+        height: 20px;
+        background: #ffc107;
+        border-radius: 50%;
+      }
+      
+      @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+      }
+      
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+      
+      .control-button {
+        position: relative;
+        padding: 1rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+      
+      .control-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      
+      .btn-on {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+        color: white;
+      }
+      
+      .btn-on:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(46, 204, 113, 0.3);
+      }
+      
+      .btn-off {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+      }
+      
+      .btn-off:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+      }
+      
+      .btn-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+      }
+      
+      /* Responsive design */
+      @media (max-width: 480px) {
+        .container {
+          padding: 1.5rem;
+          margin: 1rem;
+        }
+        
+        h1 {
+          font-size: 1.5rem;
+        }
+        
+        .control-button {
+          padding: 0.8rem 1rem;
+          font-size: 1rem;
+        }
+      }
+      
+      @media (min-width: 768px) {
+        .controls {
+          flex-direction: row;
+          justify-content: space-between;
+        }
+        
+        .control-button {
+          flex: 1;
+        }
+      }
+      
+      .loading {
+        opacity: 0.7;
+        pointer-events: none;
+      }
+      
+      .loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+      }
     </style>
   </head>
   <body>
-    <h1>Control LED Arduino</h1>
-  <div id="status">Conectando...</div>
-  <div id="message" style="min-height:1.2em;color:#333"></div>
-    <div role="radiogroup" aria-label="Control LED">
-      <label class="radio on"><input type="radio" name="led" id="rbOn" value="OFF"> Encender</label>
-      <label class="radio off"><input type="radio" name="led" id="rbOff" value="ON"> Apagar</label>
+    <div class="container">
+      <h1>🏠 Control Domótico</h1>
+      
+      <div class="status-card">
+        <div id="status">Conectando...</div>
+        <div id="message"></div>
+      </div>
+      
+      <div class="pir-status" id="pirStatus">
+        <div class="pir-icon"></div>
+        <span>Sensor PIR activado - Luz encendida automáticamente</span>
+      </div>
+      
+      <div class="controls">
+        <button class="control-button btn-on" id="btnOn">
+          <div class="btn-icon"></div>
+          Encender
+        </button>
+        <button class="control-button btn-off" id="btnOff">
+          <div class="btn-icon"></div>
+          Apagar
+        </button>
+      </div>
     </div>
+    
     <script src="script.js"></script>
   </body>
 </html>

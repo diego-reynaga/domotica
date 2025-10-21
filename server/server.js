@@ -206,9 +206,9 @@ function openPort(pathStr) {
 app.post('/api/led', async (req, res) => {
   const action = (req.body.action || '').toString().toUpperCase();
   if (!writer || !port || !port.isOpen) return res.status(500).json({ error: 'Puerto serie no abierto' });
-  if (action !== 'ON' && action !== 'OFF') return res.status(400).json({ error: 'Action debe ser ON u OFF' });
+  if (action !== 'ON' && action !== 'OFF' && action !== 'STATUS') return res.status(400).json({ error: 'Action debe ser ON, OFF o STATUS' });
 
-  const cmd = action === 'ON' ? 'ON' : 'OFF';
+  const cmd = action === 'STATUS' ? 'STATUS' : (action === 'ON' ? 'ON' : 'OFF');
   console.log(`API /api/led -> enviar: ${cmd}`);
   try {
     const resp = await writeAndWait(cmd, 2000);

@@ -1,10 +1,19 @@
 const statusEl = document.getElementById('status');
 const msgEl = document.getElementById('message');
-const rbOn = document.getElementById('rbOn');
-const rbOff = document.getElementById('rbOff');
+const btnOn = document.getElementById('btnOn');
+const btnOff = document.getElementById('btnOff');
+const pirStatusEl = document.getElementById('pirStatus');
 
-function setRadiosEnabled(enabled) {
-  rbOn.disabled = rbOff.disabled = !enabled ? true : false;
+function setButtonsEnabled(enabled) {
+  btnOn.disabled = btnOff.disabled = !enabled;
+}
+
+function setButtonLoading(button, loading) {
+  if (loading) {
+    button.classList.add('loading');
+  } else {
+    button.classList.remove('loading');
+  }
 }
 
 async function api(path, method = 'GET', body) {
@@ -26,57 +35,75 @@ async function updateStatus(preserveMsg = false) {
   try {
     const s = await api('/api/status');
     const connected = s.serialOpen;
-    statusEl.textContent = connected ? `Conectado: ${s.portPath}` : 'No conectado al Arduino';
-    setRadiosEnabled(connected);
+    statusEl.textContent = connected ? `✅ Conectado: ${s.portPath}` : '❌ No conectado al Arduino';
+    setButtonsEnabled(connected);
+    
     if (!connected && !preserveMsg) {
       msgEl.textContent = 'No hay conexión serial. Revisa el servidor o fija SERIAL_PORT.';
     }
+    
+    // Verificar estado del Arduino para mostrar PIR
+    if (connected) {
+      try {
+        const statusResponse = await api('/api/led', 'POST', { action: 'STATUS' });
+        const state = statusResponse.arduino || '';
+        
+        if (state.includes('PIR_ON')) {
+          pirStatusEl.classList.add('active');
+        } else {
+          pirStatusEl.classList.remove('active');
+        }
+      } catch (e) {
+        // Si falla la consulta de status, no mostrar error crítico
+        console.warn('Error obteniendo estado:', e);
+      }
+    } else {
+      pirStatusEl.classList.remove('active');
+    }
   } catch (e) {
-    statusEl.textContent = 'Error consultando estado';
+    statusEl.textContent = '⚠️ Error consultando estado';
     if (!preserveMsg) msgEl.textContent = 'Error de red al consultar /api/status';
-    setRadiosEnabled(false);
+    setButtonsEnabled(false);
+    pirStatusEl.classList.remove('active');
   }
 }
 
-rbOn.addEventListener('change', async () => {
-  if (!rbOn.checked) return;
-  setRadiosEnabled(false);
-  msgEl.textContent = 'Enviando OFF...';
-  try {
-    const r = await api('/api/led', 'POST', { action: 'OFF' });
-    msgEl.textContent = `Arduino: ${r.arduino || JSON.stringify(r)}`;
-    if (r.arduino && r.arduino.toUpperCase().includes('OK OFF')) {
-      rbOn.checked = true;
-      rbOff.checked = false;
-    }
-  } catch (err) {
-    console.error(err);
-    msgEl.textContent = `Error enviando OFF: ${err.body ? JSON.stringify(err.body) : err}`;
-  } finally {
-    setRadiosEnabled(true);
-    await updateStatus(true);
-  }
-});
-
-rbOff.addEventListener('change', async () => {
-  if (!rbOff.checked) return;
-  setRadiosEnabled(false);
-  msgEl.textContent = 'Enviando ON...';
+btnOn.addEventListener('click', async () => {
+  setButtonsEnabled(false);
+  setButtonLoading(btnOn, true);
+  msgEl.textContent = 'Encendiendo luz...';
+  
   try {
     const r = await api('/api/led', 'POST', { action: 'ON' });
-    msgEl.textContent = `Arduino: ${r.arduino || JSON.stringify(r)}`;
-    if (r.arduino && r.arduino.toUpperCase().includes('OK ON')) {
-      rbOff.checked = true;
-      rbOn.checked = false;
-    }
+    msgEl.textContent = `✅ ${r.arduino || 'Luz encendida'}`;
   } catch (err) {
     console.error(err);
-    msgEl.textContent = `Error enviando ON: ${err.body ? JSON.stringify(err.body) : err}`;
+    msgEl.textContent = `❌ Error: ${err.body ? JSON.stringify(err.body) : err}`;
   } finally {
-    setRadiosEnabled(true);
+    setButtonLoading(btnOn, false);
+    setButtonsEnabled(true);
     await updateStatus(true);
   }
 });
 
+btnOff.addEventListener('click', async () => {
+  setButtonsEnabled(false);
+  setButtonLoading(btnOff, true);
+  msgEl.textContent = 'Apagando luz...';
+  
+  try {
+    const r = await api('/api/led', 'POST', { action: 'OFF' });
+    msgEl.textContent = `✅ ${r.arduino || 'Luz apagada'}`;
+  } catch (err) {
+    console.error(err);
+    msgEl.textContent = `❌ Error: ${err.body ? JSON.stringify(err.body) : err}`;
+  } finally {
+    setButtonLoading(btnOff, false);
+    setButtonsEnabled(true);
+    await updateStatus(true);
+  }
+});
+
+// Inicializar
 updateStatus();
 setInterval(updateStatus, 3000);
