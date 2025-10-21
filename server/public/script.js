@@ -41,17 +41,17 @@ async function updateStatus(preserveMsg = false) {
 rbOn.addEventListener('change', async () => {
   if (!rbOn.checked) return;
   setRadiosEnabled(false);
-  msgEl.textContent = 'Enviando ON...';
+  msgEl.textContent = 'Enviando OFF...';
   try {
-    const r = await api('/api/led', 'POST', { action: 'ON' });
+    const r = await api('/api/led', 'POST', { action: 'OFF' });
     msgEl.textContent = `Arduino: ${r.arduino || JSON.stringify(r)}`;
-    if (r.arduino && r.arduino.toUpperCase().includes('OK ON')) {
+    if (r.arduino && r.arduino.toUpperCase().includes('OK OFF')) {
       rbOn.checked = true;
       rbOff.checked = false;
     }
   } catch (err) {
     console.error(err);
-    msgEl.textContent = `Error enviando ON: ${err.body ? JSON.stringify(err.body) : err}`;
+    msgEl.textContent = `Error enviando OFF: ${err.body ? JSON.stringify(err.body) : err}`;
   } finally {
     setRadiosEnabled(true);
     await updateStatus(true);
@@ -61,17 +61,17 @@ rbOn.addEventListener('change', async () => {
 rbOff.addEventListener('change', async () => {
   if (!rbOff.checked) return;
   setRadiosEnabled(false);
-  msgEl.textContent = 'Enviando OFF...';
+  msgEl.textContent = 'Enviando ON...';
   try {
-    const r = await api('/api/led', 'POST', { action: 'OFF' });
+    const r = await api('/api/led', 'POST', { action: 'ON' });
     msgEl.textContent = `Arduino: ${r.arduino || JSON.stringify(r)}`;
-    if (r.arduino && r.arduino.toUpperCase().includes('OK OFF')) {
+    if (r.arduino && r.arduino.toUpperCase().includes('OK ON')) {
       rbOff.checked = true;
       rbOn.checked = false;
     }
   } catch (err) {
     console.error(err);
-    msgEl.textContent = `Error enviando OFF: ${err.body ? JSON.stringify(err.body) : err}`;
+    msgEl.textContent = `Error enviando ON: ${err.body ? JSON.stringify(err.body) : err}`;
   } finally {
     setRadiosEnabled(true);
     await updateStatus(true);
